@@ -1,0 +1,389 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SG COPIES|PRINT</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui;}
+
+body{
+background:#070b14;
+color:white;
+overflow-x:hidden;
+animation:fadeIn 1s ease;
+}
+
+@keyframes fadeIn{
+from{opacity:0}
+to{opacity:1}
+}
+
+.hero{
+height:100vh;
+display:flex;
+align-items:center;
+justify-content:center;
+flex-direction:column;
+background:radial-gradient(circle,#111a33,#05060a);
+text-align:center;
+}
+
+.hero h1{
+font-size:2.6rem;
+background:linear-gradient(90deg,#00e0ff,#ff00cc);
+-webkit-background-clip:text;
+color:transparent;
+}
+
+.card{
+background:#121a2b;
+padding:15px;
+border-radius:12px;
+width:100%;
+max-width:520px;
+margin:10px auto;
+transition:0.3s;
+}
+
+.card:hover{
+transform:translateY(-5px);
+box-shadow:0 10px 25px rgba(0,224,255,0.2);
+}
+
+input,select{
+width:100%;
+padding:10px;
+margin:6px 0;
+border:none;
+border-radius:8px;
+outline:none;
+}
+
+button{
+padding:10px 15px;
+border:none;
+border-radius:8px;
+background:#00e0ff;
+font-weight:bold;
+cursor:pointer;
+margin-top:6px;
+transition:0.2s;
+}
+
+button:hover{
+transform:scale(1.05);
+box-shadow:0 0 15px #00e0ff;
+}
+
+/* ADMIN */
+#admin{
+display:none;
+position:fixed;
+top:0;left:0;
+width:100%;height:100%;
+background:#05060a;
+z-index:2000;
+overflow:auto;
+}
+
+.topbar{
+display:flex;
+justify-content:space-between;
+padding:10px;
+background:#0f172a;
+position:sticky;
+top:0;
+}
+
+.tabbtn{background:#1e293b;margin:5px;}
+.activeTab{background:#00e0ff;color:black;}
+
+.box{
+background:#121a2b;
+padding:10px;
+margin:8px;
+border-radius:10px;
+}
+
+.Pending{color:orange}
+.Printing{color:#4da3ff}
+.Ready{color:#2ecc71}
+.Delivered{color:#00ff88}
+.Completed{color:#00ff88}
+
+.links{
+position:fixed;
+bottom:10px;
+left:50%;
+transform:translateX(-50%);
+display:flex;
+gap:10px;
+background:#0f172a;
+padding:8px;
+border-radius:10px;
+}
+
+.links a{
+color:white;
+text-decoration:none;
+font-size:13px;
+padding:5px 8px;
+background:#1e293b;
+border-radius:6px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- CUSTOMER -->
+<div class="hero">
+<h1>SG ONLINE | CAMPUS | COPIES </h1>
+
+<div class="card">
+<h3>Create Order</h3>
+
+<input id="name" placeholder="Full Name">
+<input id="phone" placeholder="Phone">
+<input id="copies" type="number" placeholder="Copies">
+
+<select id="type">
+<option value="1">Black & White ($1)</option>
+<option value="5">Color ($5)</option>
+</select>
+
+<input type="file" id="file">
+
+<button onclick="placeOrder()">Place Order</button>
+<button onclick="clearForm()">Clear Form</button>
+<button onclick="openAdmin()">Admin Login</button>
+</div>
+</div>
+
+<!-- LINKS -->
+<div class="links">
+<a href="https://sg-inv-cc.github.io/Brands/">Brand</a>
+<a href="https://sg-inv-cc.github.io/Group/">Web Dev</a>
+<a href="https://sg-inv-cc.github.io/Group/">Services</a>
+
+</div>
+
+<!-- ADMIN -->
+<div id="admin">
+
+<div class="topbar">
+<div>
+<button class="tabbtn activeTab" onclick="showTab('orders')">Orders</button>
+<button class="tabbtn" onclick="showTab('archive')">Completed</button>
+</div>
+
+<div>
+<button onclick="logout()">Logout</button>
+</div>
+</div>
+
+<div id="ordersTab"></div>
+<div id="archiveTab" style="display:none;"></div>
+
+</div>
+
+<script>
+
+let orders = JSON.parse(localStorage.getItem("orders") || "[]");
+let isAdmin = false;
+
+/* ADMIN LOGIN */
+function openAdmin(){
+let pass = prompt("Enter Admin Password:");
+if(pass === "SG123"){
+isAdmin = true;
+document.getElementById("admin").style.display="block";
+render();
+renderArchive();
+}else{
+alert("Access Denied ❌");
+}
+}
+
+function logout(){
+isAdmin = false;
+document.getElementById("admin").style.display="none";
+}
+
+/* CLEAR */
+function clearForm(){
+document.getElementById("name").value="";
+document.getElementById("phone").value="";
+document.getElementById("copies").value="";
+document.getElementById("file").value="";
+}
+
+/* VALIDATION */
+function validate(n,p,c){
+if(n.length<3) return "Name too short";
+if(p.length<7) return "Invalid phone";
+if(c<=0) return "Invalid copies";
+return null;
+}
+
+/* PLACE ORDER */
+function placeOrder(){
+
+let fileInput = document.getElementById("file").files[0];
+
+let name=document.getElementById("name").value;
+let phone=document.getElementById("phone").value;
+let copies=document.getElementById("copies").value;
+let type=document.getElementById("type");
+
+let err=validate(name,phone,copies);
+if(err){alert(err);return;}
+
+let price=copies*type.value;
+
+let reader=new FileReader();
+
+reader.onload=function(e){
+
+let order={
+id:"SG-"+Math.floor(Math.random()*99999),
+name,phone,copies,
+type:type.options[type.selectedIndex].text,
+price,
+status:"Pending",
+fileName:fileInput?fileInput.name:"",
+fileData:fileInput?e.target.result:""
+};
+
+orders.push(order);
+save();
+
+/* WhatsApp */
+window.open("https://wa.me/"+phone+"?text="+encodeURIComponent(
+`🆕 NEW ORDER
+Name: ${name}
+Copies: ${copies}
+Total: $${price}
+Status: Pending`
+));
+
+clearForm();
+render();
+};
+
+if(fileInput) reader.readAsDataURL(fileInput);
+else reader.onload({target:{result:""}});
+}
+
+/* SAVE */
+function save(){
+localStorage.setItem("orders",JSON.stringify(orders));
+}
+
+/* DELETE */
+function del(i){
+orders.splice(i,1);
+save();
+render();
+renderArchive();
+}
+
+/* STATUS UPDATE + NOTIFY */
+function status(i,val){
+
+orders[i].status=val;
+
+if(val==="Ready"){
+window.open("https://wa.me/"+orders[i].phone+"?text="+encodeURIComponent(
+`📦 ORDER READY
+Hi ${orders[i].name}, your order is ready for delivery.`
+));
+}
+
+if(val==="Delivered"){
+window.open("https://wa.me/"+orders[i].phone+"?text="+encodeURIComponent(
+`✅ ORDER COMPLETED
+Hi ${orders[i].name}, your order has been delivered.`
+));
+}
+
+save();
+render();
+renderArchive();
+}
+
+/* FILE ACTIONS */
+function preview(i){
+window.open(orders[i].fileData);
+}
+
+function download(i){
+let a=document.createElement("a");
+a.href=orders[i].fileData;
+a.download=orders[i].fileName;
+a.click();
+}
+
+/* RENDER ORDERS */
+function render(){
+let box=document.getElementById("ordersTab");
+box.innerHTML="";
+
+orders.forEach((o,i)=>{
+if(o.status!=="Delivered"){
+box.innerHTML+=`
+<div class="box">
+<b>${o.id}</b><br>
+${o.name} | ${o.phone}<br>
+<b>$${o.price}</b><br>
+
+${o.fileName?`📎 ${o.fileName}<br>`:""}
+
+<button onclick="preview(${i})">👁 Preview</button>
+<button onclick="download(${i})">⬇️ Download</button>
+<button onclick="del(${i})">🗑 Delete</button>
+
+<br><br>
+
+<span class="${o.status}">${o.status}</span><br>
+
+<select onchange="status(${i},this.value)">
+<option>Pending</option>
+<option>Printing</option>
+<option>Ready</option>
+<option>Delivered</option>
+</select>
+
+</div>`;
+}
+});
+}
+
+/* ARCHIVE */
+function renderArchive(){
+let box=document.getElementById("archiveTab");
+box.innerHTML="";
+
+orders.forEach((o,i)=>{
+if(o.status==="Delivered"){
+box.innerHTML+=`
+<div class="box">
+<b>${o.id}</b><br>
+${o.name}<br>
+<b>$${o.price}</b><br>
+<span class="Completed">Completed</span><br>
+
+<button onclick="del(${i})">🗑 Delete</button>
+
+</div>`;
+}
+});
+}
+
+</script>
+
+</body>
+</html>
